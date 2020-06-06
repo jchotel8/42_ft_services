@@ -1,0 +1,237 @@
+******************************************************************************
+******************************  42.FT_SERVICES  ******************************
+***********************************************************************jchotel
+
+GENERAL INFOS ----------------------------------------------------------------
+. SUBJECT ....................................................................
+	- Le dashboard web de Kubernetes. Celui-ci est utile pour gérer votre cluster.
+	- L’objet Ingress Controller qui gère l’accès externe aux services dans un cluster. C’est lui qui va rediriger vers votre Container Nginx.
+	- Un serveur Nginx ouvert sur les ports 80 et 443.
+	- Un serveur FTPS ouvert sur le port 21.
+	- Un wordpress ouvert sur le port 5050, fonctionnant avec une base de donnée Mysql. Les deux devront être dans deux containers distincts. Le wordpress devra comporter plusieurs utilisateurs et un administrateur.
+	- Phpmyadmin, tournant sur le port 5000 et relié a la base de donnée MySQL.
+	- Un grafana, accessible sur le port 3000, fonctionnant avec une base de donnée influxDB. Celui-ci devra vous permettre de monitorer tous vos containers. Les deux devront aussi être dans deux containers distincts. Vous devrez créer un da- shboard par container.
+	- En cas de crash ou d’arrêt d’un des deux containers de base de données, vous devrez vous assurer que celles-ci puissent persister et ne soient pas perdu. En cas de suppression, les volumes où la data est sauvegardée doivent persister.
+	- Vous devrez vous assurer de pouvoir accéder a votre Nginx en connexion SSH.
+	- Chacun de vos containers devra pouvoir redémarrer automatiquement en cas de crash ou d’arrêt.
+
+
+CORRECTIONS TEST -------------------------------------------------------------
+	1 - verifier que tous les dockers sont sous alpine
+	2 - lancer le minikube sh setup.sh
+	3 - watch sur docker -> pour voir les coneteneurs qui se crée
+	4 - watch kubernete -> regarder l’infrastructure se créer
+	5 - explication NodePort vs ClusterIP : normalement 80 et 443 -> service en clusterIP à la place on utilise des NodePort (30-3200) augmenté
+		- on peut donc voir les choses internes
+	6 - se connecter -> cat ingress.yaml, nginx port 80
+
+	WORDPRESS - MYSQL - PHPMYADMIN
+	7 - wordpress/wp-admin -> pour créer un user
+	8 - on vérifie que phpmyadmin a bien reçu le nouvel user
+	9 - ouvrir le dashboard -> aller dans les pod -> « … » -> executer pour acceder au terminal
+	10 - éteindre la base de donné mysql -> service mariadb stop
+	11 - verifier que ca redémarre
+	12 - verifier que la donnée est persistante : user toujours présent
+	13 - expliquer les volumes persistants
+	14 - on peut faire la meme chose sur les autres conteneurs
+
+	NGINX
+	15 - nginx : 2 services (sshd _) donc 2 raisons possibles de redémarrer
+	16 - explication des boucles pour chequer les services
+	17 - liveness est une autre manière de verifier que les conteneurs sont encore en vie
+	18 - connection ssh -> depuis terminal ssh -l admin adresses_minikube -p 2222 -> 22 deja utilisé
+	19 - kubernetes : utilise par défaut 22. @bbrunet - @salty
+		
+	GRAFANA - INFLUXDB - TELEGRAF
+	20 - sur grafana verifier qu’il y a bien 7 conteneurs
+	21 - telegraf récupére des donner pour chaque conteneur
+	22 - transmis a influxdb -> visualiser sur grafana
+	23 - vérifier la persistance (dans le dashboard, service influxdb stop), regarder a nouveau les données sous grafana
+	24 - rappeler que c’est persistant garce au manifest/.yaml
+	25 - grafana étant un logiciel -> il faut kill le process avec top pour voir le num du process
+
+	FTPS
+	26 - ouvrir filezilla et renseigner les logins
+	27 - sécurisé puisque pop-up
+	28 - faire un transfert et
+	29 - ftp est egalement un logiciel -> les liveness sont toujours plus long a redémarré
+
+	TELEGRAF
+	30 - present sur tous les conteneurs
+	31 - si telegraf ne marche pas, le conteneur redémarre egalement
+
+
+
+
+	- REALLY GOOD START : https://www.youtube.com/watch?v=1xo-0gCVhTU
+	- XAVSKI : https://www.youtube.com/watch?v=vFfngcRPj9M&list=PLn6POgpklwWqfzaosSgX2XEKpse5VY2v5&index=2
+
+
+
+
+
+
+
+
+
+
+
+INSTALLER LES UTILITAIRES ----------------------------------------------------
+. KUBERNETES .................................................................
+	+ Kubernetes est un outils de gestions de minicube
+	+ installation possible avec homebrew.
+	+ https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-on-macos
+	- run la commande suivante pour vérifier que VMX est coloré
+		- sysctl -a | grep -E --color 'machdep.cpu.features|VMX'
+	- installer kubectl si la commande shell n’existe pas
+		- curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/darwin/amd64/kubectl"
+		- chmod +x ./kubectl pour le rendre executable
+		- sudo mv ./kubectl /usr/local/bin/kubectl pour le déplacer dans les binaires
+		- kubectl version --client pour vérifier que kubectl est bien installé
+
+. MINICUBE ...................................................................
+	- curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-darwin-amd64 \ && chmod +x minikube
+	- sudo mv minikube /usr/local/bin pour déplacer le fichier dans les binaires
+	+ https://kubernetes.io/docs/tasks/tools/install-minikube/
+
+. DOCKER .....................................................................
+	+ https://docs.docker.com/docker-for-mac/install/
+
+. VIRTUAL BOX ................................................................
+
+
+
+
+
+
+
+
+DEMARER MINIKUBE -------------------------------------------------------------
+	- minikube start —-vm-driver=virtualbox : permet de créer un cluster du nom de minikube
+	+ https://kubernetes.io/docs/tutorials/kubernetes-basics/create-cluster/cluster-interactive/
+
+. DASHBOARD ..................................................................
+	- minikube dashboard : ouvrir une fenêtre visuelle kubernete
+
+. INGRESS ....................................................................
+	- minikube addons enable ingress : ajouter ingress
+	- kubectl get pods -n kube-system : vérifier qu’ingress est démarré
+	+ gère l'accès externe au cluster
+
+SSH --------------------------------------------------------------------------
+	- ssh-keygen pour générer un certificat
+	- il faut ensuite le récupérer et le déplacer dans le dossier
+	
+
+
+
+
+NGINX ------------------------------------------------------------------------
+	+ https://wiki.alpinelinux.org/wiki/Nginx
+. DOCKERFILE .................................................................
+	- 1 : choisir l’environnement, ici alpine
+	- 2 : openrc permet de run les services sur alpine
+	- 3 : openssl pour certification et clé ssl
+	- 4 : le fichier de configuration par défaut doit se trouver dans etc/nginx
+
+	- build l’image : docker build -t name_image name_file
+	- pour tester : docker run -p 80:80 -p 443:443 n_img
+.DEPLOY ......................................................................
+	+ https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/ca
+	+ https://kubernetes.io/docs/tasks/access-application-cluster/ingress-minikube/
+	- kubectl apply -f deploy.yalm : pour lancer le deploy
+
+
+
+
+
+
+MYSQL ------------------------------------------------------------------------
+	+ https://wiki.alpinelinux.org/wiki/MariaDB
+. DOCKERFILE .................................................................
+	- apk add mysql mysql-client openrc : permet d’ajouter le bin "service et setup"
+	- copy my.cnf /etc/mysql/ : certaines config sont dans ce fichier (cf le lien)
+	+ tester mysql -u root show database (ou un truc similaire) pour vérifier que mysql fonctionne
+	+ il faudra plus tard rajouter le fichier wordpress.sql dans root
+	
+. YAML .......................................................................
+	- volume persistant pour les bases de données
+
+WORDPRESS --------------------------------------------------------------------
+	+ https://fr.wordpress.org/download/
+	- apk add php : wordpress a besoin de php pour fonctionner
+	- wp_config.php : user and password to access the database (recuperating la version sample dans le .tar et modifier)
+
+	
+PHPMYADMIN -------------------------------------------------------------------
+	+ https://hub.docker.com/r/phpmyadmin/phpmyadmin/dockerfile
+	+ https://www.cyberciti.biz/faq/how-to-install-php-7-fpm-on-alpine-linux/
+	+ récuperer le wordpress.sql : après avoir modifier le site, exporter
+	+ il faudra modifier l'adress ip contenu dans le fichier
+
+
+
+
+
+	
+TELEGRAF && INFLUXDB && GRAFANA ---------------------------------------------
+	+ https://codazzi.fr/mise-en-place-dun-monitoring-avec-grafana-influxdb-et-telegraf/
+. TELEGRAF ..................................................................
+	- apk add telegraf : cette cmd ne marche pas, il faut rajouter qq options
+	- telegraf.conf : il faut récupérer le fichier docker cp id_contener:/path/fichier ./
+GRAFANA .....................................................................
+	+ download : https://grafana.com/grafana/download?platform=linux
+	- defaults.ini dans grafana/conf/: ajouter les modifications (cf #MODIF)
+	- lancer et créer le dashboard grafana dans l’explorateur
+	- admin:admin
+	- configuration/data sources : add influxdb
+	- URL : http://influxdb:8086, database : telegraf, User : user1, Password : test123, HTTP Method : Post
+	- Create/import
+	- 5955…
+	- +/dashboard/new dashboard -> le db est accessible
+	- via le dashboard/pod/grafana/exec : récupérer les modifs
+
+
+
+
+
+
+
+
+
+
+
+Le docker file n'a pas acces a l'env : il faut le faire dans un script
+ssh key-gen to generate a ssh key.
+
+
+
+
+eval $(minikube docker-env)
+watch docker images
+watch kubectl get all
+watch kubectl get all -o wide
+
+AUTRES COMMANDES UTILES :
+- minikube version	: verifier la version et l’instalattion de minikube
+- minikube stop		: arrêter minikube
+- minikube delete	: supprimer minikube
+
+- kubectl get nodes 	: all/deploy/service pour avoir la ressources
+- kubectl get pods -n kube-system : pour vérifier que ingress est installé
+- kubectl api-ressources: pour voir toutes ressources possibles
+- kubectl api-versions 	: pour voir les versions disponibles
+- kubectl explain pod 	: man de la ressource
+- kubectl create deploy deployment-mysql --image mysql : to create a deploy from image
+- kubectl get deploy deployment-mysql -o yaml > mysql.yaml : to get the .yaml
+
+- docker images 	: voir les images construite 
+- docker build -t n_img n_file : construire une image
+- docker system prune 	: pour supprimer les images inutiles
+- docker run -p 80:80 -p 443:443 n_img : pour ouvrir dans le navigateur
+- docker run -ti n_img : pour ouvrir dans le terminal
+- docker image rm -f n_img : pour supprimer une image
+- docker ps : pour voir les conteneurs qui tournent et leurs id
+- docker cp id_contener:/path/fichier ./ : copier d'un conteneur vers mon dossier
+
+- mysql -u root -e "command" : pour interagir avec mysql
