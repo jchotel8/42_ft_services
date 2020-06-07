@@ -1,7 +1,7 @@
 service php-fpm7 start
 service telegraf start
 
-php -S 0.0.0.0:5000 -t /var/www &> /dev/null &
+php -S 0.0.0.0:5000 -t /www &> /dev/null &
 
 sleep 20
 while [ 1 ]

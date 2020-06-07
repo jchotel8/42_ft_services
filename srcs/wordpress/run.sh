@@ -4,7 +4,6 @@ service php-fpm7 start
 php -S 0.0.0.0:5050 -t /www &> /dev/null &
 
 sleep 20
-wget http://172.17.0.2/wordpress
 do
     sleep 5
     wget http://172.17.0.3/wordpress

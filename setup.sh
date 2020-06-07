@@ -169,7 +169,7 @@ if ! minikube status >/dev/null 2>&1
 fi
 export IP_ADDRESS=$(minikube ip)
 
-sed -i "7s/^.*/wget http:\/\/${IP_ADDRESS}\/wordpress/g" srcs/wordpress/run.sh
+sed -i "9s/^.*/wget http:\/\/${IP_ADDRESS}\/wordpress/g" srcs/wordpress/run.sh
 
 # TELEGRAF
 print_message $INFORMATION "Adding telegraf.conf to folders..."
