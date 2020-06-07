@@ -13,7 +13,7 @@ RUN tar -zxvf grafana-7.0.0.linux-amd64.tar.gz
 RUN rm grafana-7.0.0.linux-amd64.tar.gz
 COPY defaults.ini /grafana-7.0.0/conf/defaults.ini
 COPY ./telegraf.conf /etc/telegraf.conf.d
-COPY ./grafana.db /grafana-7.0.0/data/
+#COPY ./grafana.db /grafana-7.0.0/data/
 COPY ./dashboard.json /var/lib/grafana/dashboards/default.json
 COPY run.sh .
 

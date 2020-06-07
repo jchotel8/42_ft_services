@@ -152,7 +152,7 @@ done
 print_message $INFORMATION "Trying to start Minikube if need be..."
 if ! minikube status >/dev/null 2>&1
   then
-    if ! minikube start --vm-driver=virtualbox --extra-config=apiserver.service-node-port-range=1-35000
+    if ! minikube start --vm-driver=docker --extra-config=apiserver.service-node-port-range=1-35000
     then
         print_message $ERROR "Minikube failed to start !"
         exit 1
