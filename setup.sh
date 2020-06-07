@@ -101,7 +101,7 @@ do
   if [ "$i" = "0" ]; then
     continue
   fi
-  case "${!i}" in
+  case "$1" in
     "-clean")
       clean_mini
     ;;
@@ -169,7 +169,7 @@ if ! minikube status >/dev/null 2>&1
 fi
 export IP_ADDRESS=$(minikube ip)
 
-sed -i "9s/^.*/wget http:\/\/${IP_ADDRESS}\/wordpress/g" srcs/wordpress/run.sh
+sed -i "10s/^.*/wget http:\/\/${IP_ADDRESS}\/wordpress/g" srcs/wordpress/run.sh
 
 # TELEGRAF
 print_message $INFORMATION "Adding telegraf.conf to folders..."
